@@ -12,7 +12,10 @@ import java.util.TimerTask;
 
 import android.R.drawable;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
@@ -86,7 +89,10 @@ implements View.OnClickListener {
     int[] generalButtonDimention;
     int[] generalTextDimention;
     int[] shareButtonDimention;
-    
+    String time;
+	String timee;
+	String times;
+	SharedPreferences prefs;
     
 	public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -94,7 +100,10 @@ implements View.OnClickListener {
     setupStartScreen();
     setupGameBoard();
     setupEndScreen();
-    
+
+	Editor editor = prefs.edit();
+	editor.putInt("key", 0);
+	editor.commit();
     super.setContentView(frame);
 } // ()
 	
@@ -139,6 +148,7 @@ public void setupVars(){
     stitle = new TextView(this);
     share = new Button(this);
     imagePath = new File(Environment.getExternalStorageDirectory() + "/screenshot.png");
+    prefs = this.getSharedPreferences("myPrefsKey", Context.MODE_PRIVATE);
 }
 	
 public void setupStartScreen(){
@@ -264,11 +274,27 @@ public void onClick(View view) {
 	soundPool.play(sound, 1.0f, 1.0f, 0, 0, 1.0f);
 	progress++;
 	if(progress == wincriteria){
-		String time = Integer.toString(ticks);
-		String timee = time.substring((time.length()-3));
-		String times = time.substring(0, (time.length()-3));
+		int tickstemp = ticks;
+		int highscore = prefs.getInt("key", 0);
+		time = Integer.toString(tickstemp);
+		timee = time.substring((time.length()-3));
+		times = time.substring(0, (time.length()-3));
+		if((highscore-tickstemp) <= 0){
+			timed.setText(times+"."+timee+"\n seconds");
+		}else{
 				
-	    timed.setText(times+"."+timee+"\n seconds");
+	    timed.setText(times+"."+timee+" seconds\n"+(highscore-tickstemp)+" ms faster!");
+		}
+		if(tickstemp <= prefs.getInt("key", 0)){
+			Editor editor = prefs.edit();
+			editor.putInt("key", tickstemp);
+			editor.commit();
+			}
+		if(prefs.getInt("key", 0) == 0){
+			Editor editor = prefs.edit();
+			editor.putInt("key", tickstemp);
+			editor.commit();
+			}
 		 super.setContentView(end);
 	}
 	int b = randomInt();
@@ -296,7 +322,7 @@ public void onClick(View view) {
 		Intent sharingIntent = new Intent(android.content.Intent.ACTION_SEND); 
 	    sharingIntent.setType("image/jpeg");
 	    String shareBody = "Here is the share content body";
-	    sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, "My Score is "+timed.getText()+" !");
+	    sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, "My Score is "+times+"."+timee+" seconds!");
 	    sharingIntent.putExtra(android.content.Intent.EXTRA_TITLE, "Share your score!");
 	    sharingIntent.putExtra(android.content.Intent.EXTRA_STREAM, Uri.fromFile(imagePath));
 	startActivity(Intent.createChooser(sharingIntent, "Share via"));
