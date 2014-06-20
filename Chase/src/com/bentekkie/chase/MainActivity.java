@@ -321,7 +321,6 @@ public void onClick(View view) {
 		saveBitmap(bitmap);
 		Intent sharingIntent = new Intent(android.content.Intent.ACTION_SEND); 
 	    sharingIntent.setType("image/jpeg");
-	    String shareBody = "Here is the share content body";
 	    sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, "My Score is "+times+"."+timee+" seconds!");
 	    sharingIntent.putExtra(android.content.Intent.EXTRA_TITLE, "Share your score!");
 	    sharingIntent.putExtra(android.content.Intent.EXTRA_STREAM, Uri.fromFile(imagePath));
