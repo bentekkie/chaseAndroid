@@ -26,6 +26,7 @@ public final class R {
     }
     public static final class raw {
         public static final int mario=0x7f030000;
+        public static final int name=0x7f030001;
     }
     public static final class string {
         public static final int action_settings=0x7f050003;

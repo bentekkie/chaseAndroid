@@ -19,6 +19,7 @@ import android.content.SharedPreferences.Editor;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.media.AudioManager;
@@ -62,6 +63,8 @@ implements View.OnClickListener {
 	String startButtonTag;
 	String restartButtonTag;
 	String shareButtonTag;
+	String clearButtonText;
+	String clearButtonTag;
 	float stext;
 	float ltext;
 	float eltext;
@@ -75,31 +78,47 @@ implements View.OnClickListener {
 	LayoutParams timeTextLayout;
     LayoutParams endTitleLayout;
     LayoutParams shareButtonLayout;
+    LayoutParams clearScoreLayout;
 	FrameLayout frame;
     ImageView backround;
     ImageView backroundend;
 	FrameLayout end;
+	static FrameLayout shareFrame;
     TextView timed;
     Button reset;
     Button share;
     TextView stitle;
     Typeface type;
-    File imagePath;
+    static File imagePath;
     Bitmap bitmap;
     int[] generalButtonDimention;
     int[] generalTextDimention;
     int[] shareButtonDimention;
+    int[] clearScoreButtonDimention;
+    String hightscoreString;
+	String hightscoreStringe;
+	String hightscoreStrings;
+
     String time;
 	String timee;
 	String times;
 	SharedPreferences prefs;
-    
+    Button clearScore;
+    TextView shareScore;
+    TextView shareTitle;
+    TextView shareText;
+    LayoutParams shareScoreLayout;
+    LayoutParams shareTitleLayout;
+    LayoutParams shareTextLayout;
+    ImageView shareName;
+	
 	public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setupVars();
     setupStartScreen();
     setupGameBoard();
     setupEndScreen();
+    setupShare();
 
 	Editor editor = prefs.edit();
 	editor.putInt("key", 0);
@@ -108,6 +127,7 @@ implements View.OnClickListener {
 } // ()
 	
 public void setupVars(){
+	shareName = new ImageView(this);
 	type = Typeface.createFromAsset(getAssets(),"fonts/PlayfairDisplay-Black.ttf"); 
 	buttons = new ArrayList<Button>();;
 	layout = new TableLayout (this);
@@ -118,11 +138,13 @@ public void setupVars(){
 	startButtonText = "Start";
 	resetButtonText = "Restart";
 	timeTitleText = "Time";
+	clearButtonText = "Clear";
 	redButtonTag = "1";
 	greyButtonTag = "0";
 	startButtonTag = "2";
 	restartButtonTag = "3";
 	shareButtonTag = "4";
+	clearButtonTag = "5";
 	stext = 30.0f;
 	ltext = 60.0f;
 	eltext = 100.0f;
@@ -134,19 +156,29 @@ public void setupVars(){
     generalButtonDimention = new int[]{(metrics.widthPixels/twidth),((metrics.heightPixels)/(tlength+1))};
     generalTextDimention = new int[]{(metrics.widthPixels),((metrics.heightPixels)/(tlength+1))};
     shareButtonDimention = new int[]{(metrics.widthPixels/10),((metrics.widthPixels)/10)};
+    clearScoreButtonDimention = new int[]{(metrics.widthPixels/twidth),(metrics.heightPixels)/(2*(tlength+1))};
 	startButtonLayout = new LayoutParams(generalButtonDimention[0],generalButtonDimention[1], Gravity.CENTER);
     resetButtonLayout = new LayoutParams(generalButtonDimention[0],generalButtonDimention[1], Gravity.CENTER | Gravity.BOTTOM);
 	timeTextLayout = new LayoutParams(generalTextDimention[0],generalTextDimention[1], Gravity.CENTER);
 	endTitleLayout = new LayoutParams(generalTextDimention[0],generalTextDimention[1], Gravity.CENTER | Gravity.TOP);
     shareButtonLayout = new LayoutParams(shareButtonDimention[0],shareButtonDimention[1], Gravity.RIGHT | Gravity.BOTTOM);
-	frame = new FrameLayout(this);
+    clearScoreLayout = new LayoutParams(clearScoreButtonDimention[0],clearScoreButtonDimention[1], Gravity.BOTTOM |Gravity.LEFT);
+    shareScoreLayout = new LayoutParams(504,168, Gravity.CENTER);
+    shareTitleLayout =  new LayoutParams(504,168, Gravity.TOP);
+    shareTextLayout =  new LayoutParams(504,100, Gravity.BOTTOM);
+    frame = new FrameLayout(this);
     backround = new ImageView(this);
     backroundend = new ImageView(this);
+    shareFrame = new FrameLayout(this);
 	end = new FrameLayout(this);
     timed = new TextView(this);
     reset = new Button(this);
     stitle = new TextView(this);
     share = new Button(this);
+    clearScore = new Button(this);
+    shareScore = new TextView(this);
+    shareTitle = new TextView(this);
+    shareText = new TextView(this);
     imagePath = new File(Environment.getExternalStorageDirectory() + "/screenshot.png");
     prefs = this.getSharedPreferences("myPrefsKey", Context.MODE_PRIVATE);
 }
@@ -251,6 +283,15 @@ public void setupEndScreen(){
     share.setTag(shareButtonTag);
     share.setOnClickListener(this);
     share.setBackgroundResource(drawable.ic_menu_share);
+    clearScore.setGravity(Gravity.CENTER);
+    clearScore.setText(clearButtonText);
+    clearScore.setTypeface(type);
+    clearScore.setTextSize(TypedValue.COMPLEX_UNIT_PX,generalButtonDimention[1]/5);
+    clearScore.setBackgroundColor(Color.BLACK);
+    clearScore.setTextColor(Color.WHITE);
+    clearScore.setTag(clearButtonTag);
+    clearScore.setOnClickListener(this);
+    end.addView(clearScore,clearScoreLayout);
     end.addView(share,shareButtonLayout);
     end.addView(timed, timeTextLayout);
     end.addView(reset, resetButtonLayout);
@@ -271,30 +312,52 @@ public void setupTimer(){
 
 public void onClick(View view) {
 	if(view.getTag() == redButtonTag){
+		if(progress == 0){
+			isPaused = false;
+			setupTimer();
+		}
 	soundPool.play(sound, 1.0f, 1.0f, 0, 0, 1.0f);
 	progress++;
 	if(progress == wincriteria){
 		int tickstemp = ticks;
 		int highscore = prefs.getInt("key", 0);
 		time = Integer.toString(tickstemp);
-		timee = time.substring((time.length()-3));
-		times = time.substring(0, (time.length()-3));
-		if((highscore-tickstemp) <= 0){
-			timed.setText(times+"."+timee+"\n seconds");
+		if(time.length() <= 3){
+			times = "0";
+			timee = time;
 		}else{
-				
-	    timed.setText(times+"."+timee+" seconds\n"+(highscore-tickstemp)+" ms faster!");
+			timee = time.substring((time.length()-3));
+			times = time.substring(0, (time.length()-3));
+		}
+		if((highscore-tickstemp) <= 0){
+			if(highscore == 0){
+				timed.setText(times+"."+timee+" seconds");
+			}else{
+
+				hightscoreString = Integer.toString(highscore);
+				if(hightscoreString.length() <= 3){
+					hightscoreStrings = "0";
+					hightscoreStringe = hightscoreString;
+				}else{
+					hightscoreStringe = hightscoreString.substring((hightscoreString.length()-3));
+					hightscoreStrings = hightscoreString.substring(0, (hightscoreString.length()-3));
+				}
+				timed.setText(times+"."+timee+" seconds\nHighscore: "+hightscoreStrings+"."+hightscoreStringe);
+			
+			}
+		}else{		
+			timed.setText(times+"."+timee+" seconds\n"+(highscore-tickstemp)+" ms faster!");
 		}
 		if(tickstemp <= prefs.getInt("key", 0)){
 			Editor editor = prefs.edit();
 			editor.putInt("key", tickstemp);
 			editor.commit();
-			}
+		}
 		if(prefs.getInt("key", 0) == 0){
 			Editor editor = prefs.edit();
 			editor.putInt("key", tickstemp);
 			editor.commit();
-			}
+		}
 		 super.setContentView(end);
 	}
 	int b = randomInt();
@@ -306,45 +369,94 @@ public void onClick(View view) {
 	}else if(view.getTag() == greyButtonTag){
 	setToGrey(view);
 	}else if(view.getTag() ==startButtonTag){
-		isPaused = false;
+		
 	    super.setContentView(layout);
                                                                                                                                 
-	    setupTimer();
+	    
 	}else if(view.getTag() == restartButtonTag){
 		T.cancel();
 		ticks = 0;
-		setupTimer();
 		progress = 0;
 	    super.setContentView(layout);	
 	}else if(view.getTag() == shareButtonTag){
-		bitmap = takeScreenshot();
-		saveBitmap(bitmap);
+		
+		generateShare(timed.getText());
 		Intent sharingIntent = new Intent(android.content.Intent.ACTION_SEND); 
 	    sharingIntent.setType("image/jpeg");
 	    sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, "My Score is "+times+"."+timee+" seconds!");
 	    sharingIntent.putExtra(android.content.Intent.EXTRA_TITLE, "Share your score!");
 	    sharingIntent.putExtra(android.content.Intent.EXTRA_STREAM, Uri.fromFile(imagePath));
 	startActivity(Intent.createChooser(sharingIntent, "Share via"));
+	}else if(view.getTag() == clearButtonTag){
+		Editor editor = prefs.edit();
+		editor.putInt("key", 0);
+		editor.commit();
+		timed.setText("Scores Cleared!");
 	}
 }
-public Bitmap takeScreenshot() {
-	   View rootView = findViewById(android.R.id.content).getRootView();
-	   rootView.setDrawingCacheEnabled(true);
-	   return rootView.getDrawingCache();
-	}
-public void saveBitmap(Bitmap bitmap) {
+public void setupShare(){
+	shareTitle.setText("Time");
+	shareTitle.setTypeface(type);
+	shareTitle.setTextColor(Color.WHITE);
+	shareTitle.setGravity(Gravity.CENTER);
+	shareTitle.setTextSize(TypedValue.COMPLEX_UNIT_PX,120);
+	shareTitle.setDrawingCacheEnabled(true);
+	shareTitle.layout(0, 0, 504, 128); 
+	shareScore.setText("No Score Recorded");
+	shareScore.setTypeface(type);
+	shareScore.setTextColor(Color.WHITE);
+	shareScore.setGravity(Gravity.CENTER);
+	shareScore.setTextSize(TypedValue.COMPLEX_UNIT_PX,60);
+	shareScore.setDrawingCacheEnabled(true);
+	shareScore.layout(0, 222, 504, 292);
+	shareFrame.setBackgroundColor(Color.RED);
+	shareFrame.layout(0, 0, 504, 504);
+/*	SpannableString name = new SpannableString("DragonFruit CodingHouse");
+	ForegroundColorSpan red = new ForegroundColorSpan(Color.WHITE);
+	ForegroundColorSpan blue = new ForegroundColorSpan(Color.BLUE);
+	name.setSpan(red,1,5,0);
+	name.setSpan(red, 18, 23, 0);
+	name.setSpan(blue, 6, 10, 0);
+	name.setSpan(blue, 12, 18, 0);
+	shareText.setText(name,BufferType.SPANNABLE );
+	shareText.setTypeface(type);
+//	shareText.setTextColor(Color.WHITE);
+	shareText.setGravity(Gravity.CENTER);
+	shareText.setTextSize(TypedValue.COMPLEX_UNIT_PX,30);
+	shareText.setDrawingCacheEnabled(true);
+	shareText.layout(0, 404, 504, 504); */
+	shareName.setImageResource(R.raw.name);
+	shareName.layout(0, 404, 504, 504);
 
-    FileOutputStream fos;
+	shareText.setDrawingCacheEnabled(true);
+	shareFrame.addView(shareName,shareTextLayout);
+	shareFrame.addView(shareTitle,shareTitleLayout);
+	shareFrame.addView(shareScore,shareScoreLayout);
+}
+public Boolean generateShare(CharSequence score){
+	shareScore.setText(score);
+	shareTitle.buildDrawingCache();
+	shareScore.buildDrawingCache();
+    shareFrame.setDrawingCacheEnabled(true);
+    shareFrame.buildDrawingCache();
+    Bitmap bm = shareFrame.getDrawingCache();
+    while(bm == null){
+    	bm = shareFrame.getDrawingCache();
+    }
+	FileOutputStream fos;
     try {
         fos = new FileOutputStream(imagePath);
-        bitmap.compress(CompressFormat.JPEG, 100, fos);
+        bm.compress(CompressFormat.JPEG, 100, fos);
         fos.flush();
         fos.close();
     } catch (FileNotFoundException e) {
         Log.e("GREC", e.getMessage(), e);
+        return false;
     } catch (IOException e) {
         Log.e("GREC", e.getMessage(), e);
+        return false;
     }
+	return true;
 }
 public void onConfigurationChanged(Configuration newConfig) {
     super.onConfigurationChanged(newConfig);
